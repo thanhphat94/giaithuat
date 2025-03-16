@@ -79,15 +79,15 @@ int main() {
 
     return 0;
 }
-
+bai toan ATM
 #include <stdio.h>
 
 int main() {
-    int denominations[] = {5000, 2000, 1000, 500, 200, 100}; // C·c m?nh gi· ti?n
-    int numDenominations = 6; // S? lu?ng m?nh gi·
-    int M; // S? ti?n c?n r˙t
+    int denominations[] = {5000, 2000, 1000, 500, 200, 100}; // C√°c m?nh gi√° ti?n
+    int numDenominations = 6; // S? lu?ng m?nh gi√°
+    int M; // S? ti?n c?n r√∫t
 
-    // Nh?p s? ti?n c?n r˙t
+    // Nh?p s? ti?n c?n r√∫t
     printf("Nhap so tien can rut (M): ");
     scanf("%d", &M);
 
@@ -96,14 +96,14 @@ int main() {
         return 1;
     }
 
-    int remaining = M; // S? ti?n cÚn l?i
-    int count[6] = {0}; // M?ng d?m s? t? ti?n cho m?i m?nh gi·
+    int remaining = M; // S? ti?n c√≤n l?i
+    int count[6] = {0}; // M?ng d?m s? t? ti?n cho m?i m?nh gi√°
 
-    // ¡p d?ng thu?t to·n h·u an
+    // √Åp d?ng thu?t to√°n h√°u an
     for (int i = 0; i < numDenominations; i++) {
         if (denominations[i] <= remaining) {
-            count[i] = remaining / denominations[i]; // S? t? t?i da cÛ th? l?y
-            remaining = remaining % denominations[i]; // C?p nh?t s? ti?n cÚn l?i
+            count[i] = remaining / denominations[i]; // S? t? t?i da c√≥ th? l?y
+            remaining = remaining % denominations[i]; // C?p nh?t s? ti?n c√≤n l?i
         }
     }
 
@@ -115,26 +115,26 @@ int main() {
         }
     }
 
-    // Ki?m tra n?u khÙng r˙t du?c d? ti?n
+    // Ki?m tra n?u kh√¥ng r√∫t du?c d? ti?n
     if (remaining > 0) {
         printf("Khong the rut du %d voi cac menh gia da cho!\n", remaining);
     }
 
     return 0;
 }
-
+bai toan cai balo
 #include <stdio.h>
 #include <stdlib.h>
 
-// C?u tr˙c luu thÙng tin d? v?t
+// C?u tr√∫c luu th√¥ng tin d? v?t
 typedef struct {
-    char name;        // TÍn d? v?t
+    char name;        // T√™n d? v?t
     int weight;       // Tr?ng lu?ng
-    int value;        // Gi· tr?
-    double valuePerWeight; // T? l? gi· tr?/tr?ng lu?ng
+    int value;        // Gi√° tr?
+    double valuePerWeight; // T? l? gi√° tr?/tr?ng lu?ng
 } Item;
 
-// H‡m so s·nh d? s?p x?p theo t? l? gi· tr?/tr?ng lu?ng gi?m d?n
+// H√†m so s√°nh d? s?p x?p theo t? l? gi√° tr?/tr?ng lu?ng gi?m d?n
 int compare(const void *a, const void *b) {
     Item *itemA = (Item *)a;
     Item *itemB = (Item *)b;
@@ -157,7 +157,7 @@ int main() {
         items[i].valuePerWeight = (double)items[i].value / items[i].weight;
     }
 
-    // S?p x?p theo t? l? gi· tr?/tr?ng lu?ng gi?m d?n
+    // S?p x?p theo t? l? gi√° tr?/tr?ng lu?ng gi?m d?n
     qsort(items, N, sizeof(Item), compare);
 
     int remainingWeight = W;
