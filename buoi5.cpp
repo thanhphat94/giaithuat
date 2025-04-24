@@ -1,241 +1,216 @@
 #include <stdio.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
-#define N 4
+#define MAX_E 100
+#define MAX_V 5
 
-int final_path[N + 1];
-int visited[N];
-int final_res = INT_MAX;
+typedef struct {
+    int u, v, cost;
+    int active; // 1: xét, 0: loại bỏ
+} Edge;
 
-// Sao chep duong di tam thoi vao ket qua cuoi
-void copyToFinal(int curr_path[]) {
-    for (int i = 0; i < N; i++)
-        final_path[i] = curr_path[i];
-    final_path[N] = curr_path[0];
+Edge edges[MAX_E];
+int E = 0;
+int best_cost = INT_MAX;
+
+int parent[MAX_V];
+int rank[MAX_V];
+
+// Tìm đại diện
+int find(int u) {
+    if (parent[u] != u)
+        parent[u] = find(parent[u]);
+    return parent[u];
 }
 
-// Tim canh ngan nhat tu dinh i
-int firstMin(int adj[N][N], int i) {
-    int min = INT_MAX;
-    for (int k = 0; k < N; k++) {
-        if (adj[i][k] < min && i != k)
-            min = adj[i][k];
+// Hợp nhất 2 tập
+int union_set(int u, int v) {
+    int pu = find(u);
+    int pv = find(v);
+    if (pu == pv) return 0;
+    if (rank[pu] < rank[pv]) parent[pu] = pv;
+    else if (rank[pu] > rank[pv]) parent[pv] = pu;
+    else {
+        parent[pv] = pu;
+        rank[pu]++;
     }
-    return min;
+    return 1;
 }
 
-// Tim canh ngan thu hai tu dinh i
-int secondMin(int adj[N][N], int i) {
-    int first = INT_MAX, second = INT_MAX;
-    for (int j = 0; j < N; j++) {
-        if (i == j) continue;
-        if (adj[i][j] <= first) {
-            second = first;
-            first = adj[i][j];
-        } else if (adj[i][j] <= second && adj[i][j] != first) {
-            second = adj[i][j];
-        }
+// Đếm bậc của mỗi đỉnh trong tập cạnh chọn
+int degrees[MAX_V];
+
+int is_valid_tour(Edge selected[], int count) {
+    if (count != MAX_V) return 0;
+    memset(degrees, 0, sizeof(degrees));
+    for (int i = 0; i < MAX_V; i++) parent[i] = i, rank[i] = 0;
+    for (int i = 0; i < count; i++) {
+        degrees[selected[i].u]++;
+        degrees[selected[i].v]++;
+        if (!union_set(selected[i].u, selected[i].v))
+            return 0; // tạo chu trình sớm
     }
-    return second;
+    for (int i = 0; i < MAX_V; i++) {
+        if (degrees[i] != 2) return 0;
+    }
+    return 1;
 }
 
-// Ham nhanh can de quy
-void TSPRec(int adj[N][N], int curr_bound, int curr_weight, int level, int curr_path[]) {
-    if (level == N) {
-        if (adj[curr_path[level - 1]][curr_path[0]] != 0) {
-            int curr_res = curr_weight + adj[curr_path[level - 1]][curr_path[0]];
-            if (curr_res < final_res) {
-                copyToFinal(curr_path);
-                final_res = curr_res;
+void solve(int idx, Edge selected[], int count, int curr_cost) {
+    if (curr_cost >= best_cost) return;
+
+    if (count == MAX_V) {
+        if (is_valid_tour(selected, count)) {
+            if (curr_cost < best_cost) {
+                best_cost = curr_cost;
+                printf("\n> Tour tốt hơn tìm được: Chi phí = %d\n", best_cost);
+                for (int i = 0; i < count; i++)
+                    printf("   %d-%d (%d)\n", selected[i].u, selected[i].v, selected[i].cost);
             }
         }
         return;
     }
 
-    for (int i = 0; i < N; i++) {
-        if (adj[curr_path[level - 1]][i] != 0 && visited[i] == 0) {
-            int temp = curr_bound;
-            curr_weight += adj[curr_path[level - 1]][i];
+    if (idx >= E) return;
 
-            if (level == 1)
-                curr_bound -= (firstMin(adj, curr_path[level - 1]) + firstMin(adj, i)) / 2;
-            else
-                curr_bound -= (secondMin(adj, curr_path[level - 1]) + firstMin(adj, i)) / 2;
+    // Nhánh chọn cạnh idx
+    selected[count] = edges[idx];
+    solve(idx + 1, selected, count + 1, curr_cost + edges[idx].cost);
 
-            if (curr_bound + curr_weight < final_res) {
-                curr_path[level] = i;
-                visited[i] = 1;
-                TSPRec(adj, curr_bound, curr_weight, level + 1, curr_path);
-            }
-
-            curr_weight -= adj[curr_path[level - 1]][i];
-            curr_bound = temp;
-
-            memset(visited, 0, sizeof(visited));
-            for (int j = 0; j <= level - 1; j++)
-                visited[curr_path[j]] = 1;
-        }
-    }
+    // Nhánh bỏ qua cạnh idx
+    solve(idx + 1, selected, count, curr_cost);
 }
 
-// Ham khoi tao va goi de quy chinh
-void TSP(int adj[N][N]) {
-    int curr_path[N + 1];
-    int curr_bound = 0;
-
-    memset(curr_path, -1, sizeof(curr_path));
-    memset(visited, 0, sizeof(visited));
-
-    for (int i = 0; i < N; i++)
-        curr_bound += firstMin(adj, i) + secondMin(adj, i);
-
-    curr_bound = (curr_bound & 1) ? (curr_bound / 2 + 1) : (curr_bound / 2);
-
-    visited[0] = 1;
-    curr_path[0] = 0;
-
-    TSPRec(adj, curr_bound, 0, 1, curr_path);
-}
-
-// Ham main
 int main() {
-    int adj[N][N] = {
-        {0, 10, 15, 20},
-        {10, 0, 35, 25},
-        {15, 35, 0, 30},
-        {20, 25, 30, 0}
+    // Danh sách cạnh theo ví dụ hình 3-5
+    int input[][3] = {
+        {0, 1, 2}, {0, 2, 4}, {0, 3, 6}, {0, 4, 8},
+        {1, 2, 6}, {1, 3, 10}, {1, 4, 5},
+        {2, 3, 3}, {2, 4, 7}, {3, 4, 4}
     };
 
-    TSP(adj);
+    int input_E = sizeof(input) / sizeof(input[0]);
+    for (int i = 0; i < input_E; i++) {
+        edges[E].u = input[i][0];
+        edges[E].v = input[i][1];
+        edges[E].cost = input[i][2];
+        edges[E].active = 1;
+        E++;
+    }
 
-    printf("Chi phi nho nhat: %d\n", final_res);
-    printf("Duong di: ");
-    for (int i = 0; i <= N; i++)
-        printf("%d ", final_path[i]);
-    printf("\n");
+    Edge selected[MAX_V];
+    solve(0, selected, 0, 0);
 
+    printf("\nChi phí nhỏ nhất tìm được: %d\n", best_cost);
     return 0;
 }
 
+// Mô phỏng thuật toán nhánh cận cho bài toán cái ba lô như Hình 3.13 trong sách
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX 100
+#define N 4           // Số lượng vật
+#define CAPACITY 37   // Trọng lượng tối đa
 
+// Cấu trúc vật phẩm
 typedef struct {
-    float weight;
+    char name;
+    int weight;
     int value;
+    float ratio; // Giá trị / Trọng lượng
 } Item;
 
+// Cấu trúc nút trạng thái trong cây tìm kiếm
 typedef struct {
-    int level;
-    int profit;
-    int bound;
-    float weight;
+    int level;        // Cấp hiện tại (đang xét vật thứ mấy)
+    int profit;       // Giá trị hiện tại (TGT)
+    int weight;       // Trọng lượng hiện tại (W)
+    float bound;      // Cận trên CT
 } Node;
 
-int n = 5; // so luong vat pham
-int W = 10; // trong luong toi da cua ba lo
-
-Item arr[] = {
-    {2, 40}, {3.14, 50}, {1.98, 100}, {5, 95}, {3, 30}
+Item items[N] = {
+    {'b', 10, 25, 0},
+    {'a', 15, 30, 0},
+    {'d', 4, 6, 0},
+    {'c', 2, 2, 0}
 };
 
-// Ham so sanh cho qsort: sap xep theo ty le value/weight giam dan
+// So sánh để sắp xếp theo tỉ lệ giá trị / trọng lượng giảm dần
 int cmp(const void *a, const void *b) {
-    float r1 = ((Item*)a)->value / ((Item*)a)->weight;
-    float r2 = ((Item*)b)->value / ((Item*)b)->weight;
-    if (r1 < r2) return 1;
-    if (r1 > r2) return -1;
-    return 0;
+    float r1 = ((Item *)a)->ratio;
+    float r2 = ((Item *)b)->ratio;
+    return (r2 > r1) - (r2 < r1);
 }
 
-// Tinh bound toi da loi nhuan co the dat tu node u
-int bound(Node u, Item arr[]) {
-    if (u.weight >= W)
-        return 0;
-
-    int profit_bound = u.profit;
+// Tính bound (cận trên) tại một node
+float bound(Node u) {
+    if (u.weight >= CAPACITY) return 0;
+    float result = u.profit;
     int j = u.level + 1;
-    float totweight = u.weight;
-
-    while (j < n && totweight + arr[j].weight <= W) {
-        totweight += arr[j].weight;
-        profit_bound += arr[j].value;
+    int totalWeight = u.weight;
+    while (j < N && totalWeight + items[j].weight <= CAPACITY) {
+        totalWeight += items[j].weight;
+        result += items[j].value;
         j++;
     }
-
-    if (j < n)
-        profit_bound += (W - totweight) * arr[j].value / arr[j].weight;
-
-    return profit_bound;
+    if (j < N)
+        result += (CAPACITY - totalWeight) * items[j].ratio;
+    return result;
 }
 
-// Hang doi don gian cho Node
-Node queue[MAX];
-int front = 0, rear = 0;
-
-void enqueue(Node x) {
-    if (rear < MAX)
-        queue[rear++] = x;
-}
-
-Node dequeue() {
-    return queue[front++];
-}
-
-int isEmpty() {
-    return front == rear;
-}
-
-// Giai bai toan Knapsack bang nhanh can
-int knapsack(Item arr[]) {
-    qsort(arr, n, sizeof(Item), cmp);
-
+// Hàm mô phỏng nhánh cận
+void knapsack() {
+    Node Q[100];
+    int front = 0, rear = 0;
     Node u, v;
-    u.level = -1;
-    u.profit = 0;
-    u.weight = 0;
 
-    int maxProfit = 0;
+    Node best = { .profit = 0 };
 
-    enqueue(u);
+    u.level = -1; u.profit = 0; u.weight = 0;
+    u.bound = bound(u);
+    Q[rear++] = u;
 
-    while (!isEmpty()) {
-        u = dequeue();
+    while (front < rear) {
+        u = Q[front++];
 
-        if (u.level == n - 1)
-            continue;
+        if (u.bound <= best.profit) continue; // Cắt tỉa
 
         v.level = u.level + 1;
 
-        // Nhanh lay vat pham
-        v.weight = u.weight + arr[v.level].weight;
-        v.profit = u.profit + arr[v.level].value;
+        // Nhánh chọn vật phẩm
+        v.weight = u.weight + items[v.level].weight;
+        v.profit = u.profit + items[v.level].value;
+        v.bound = bound(v);
 
-        if (v.weight <= W && v.profit > maxProfit)
-            maxProfit = v.profit;
+        if (v.weight <= CAPACITY && v.profit > best.profit) {
+            best = v;
+        }
+        if (v.bound > best.profit)
+            Q[rear++] = v;
 
-        v.bound = bound(v, arr);
-        if (v.bound > maxProfit)
-            enqueue(v);
-
-        // Nhanh khong lay vat pham
+        // Nhánh không chọn vật phẩm
         v.weight = u.weight;
         v.profit = u.profit;
-        v.bound = bound(v, arr);
-        if (v.bound > maxProfit)
-            enqueue(v);
+        v.bound = bound(v);
+        if (v.bound > best.profit)
+            Q[rear++] = v;
     }
 
-    return maxProfit;
+    printf("\n> Giá trị lớn nhất tìm được: %d\n", best.profit);
 }
 
-// Ham main
 int main() {
-    int result = knapsack(arr);
-    printf("Gia tri toi uu: %d\n", result);
+    for (int i = 0; i < N; i++) {
+        items[i].ratio = (float)items[i].value / items[i].weight;
+    }
+    qsort(items, N, sizeof(Item), cmp);
+
+    knapsack();
     return 0;
 }
+
+
+
 
